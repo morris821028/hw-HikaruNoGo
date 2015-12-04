@@ -1,0 +1,5 @@
+*.swp
+go-debug.txt
+*.exe
+*.out
+*.gch
