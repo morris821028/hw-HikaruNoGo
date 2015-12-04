@@ -1,10 +1,12 @@
 #include "board.h"
+#include "MCTS.h"
 #include <cstdio>
 #include <cstdlib>
 
+static MCTS mcts;
 class Simulator {
 public:
-	Simulater() {
+	void init(mBoard board, int turn, int GameRecord[MAXGAMELENGTH][BOUNDARYSIZE][BOUNDARYSIZE], int game_length) {
 		
 	}
 	/*
@@ -60,7 +62,7 @@ public:
 	    }
 	    
 	    int score = TmpBoard.score();
-	    return (turn == BLACK) ? score:-score;
+	    return (turn == BLACK) ? score : -score;
 	}
 	int mcts_pick_move(mBoard &board, int turn, int time_limit,
 			int game_length, int GameRecord[MAXGAMELENGTH][BOUNDARYSIZE][BOUNDARYSIZE]) {
@@ -77,19 +79,21 @@ public:
 	    int best_move = MoveList[0];
 	    int best_score = INT_MIN;
 	    vector<int> first_step(num_legal_moves, 0);
-	    for (int i = 0; i < first_step.size(); i++)
-	    	first_step[i] = INT_MIN;
+//	    for (int i = 0; i < first_step.size(); i++)
+//	    	first_step[i] = INT_MIN;
+		int rounds = 0;
 	    while (true) {
 	    	for (int i = 0; i < num_legal_moves; i++) {
 	    		int score = pureMonteCaro(board, turn, MoveList[i], game_length, GameRecord);
-	    		if (score > first_step[i])
-	    			first_step[i] = score;
+	    		first_step[i] += score;
 				if (clock() > end_t)
 					break;
 			}
 			if (clock() > end_t)
 				break;
+			rounds++;
 		}
+		fprintf(stderr, "Round %d\n", rounds);
 		for (int i = 0; i < num_legal_moves; i++)  {
 			if (first_step[i] > best_score) {
 				best_move = MoveList[i];
@@ -103,6 +107,9 @@ public:
 	 * if there is no legal move the function will return 0.
 	 * */
 	int genmove(mBoard &board, int turn, int time_limit, int game_length, int GameRecord[MAXGAMELENGTH][BOUNDARYSIZE][BOUNDARYSIZE]) {
+//		mcts.init(board, game_length, turn, GameRecord);
+//		int return_move = mcts.run();
+//		do_move(board, turn, return_move);
 		int return_move = mcts_pick_move(board, turn, time_limit, game_length, GameRecord);
 		do_move(board, turn, return_move);
 		return return_move % 100;

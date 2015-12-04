@@ -21,9 +21,20 @@ static const int DirectionY[MAXDIRECTION] = { 0, 0, 1,-1};
 
 class mBoard {
 public:
-	int B[BOUNDARYSIZE][BOUNDARYSIZE], turn;
+	int B[BOUNDARYSIZE][BOUNDARYSIZE];
 	mBoard() {
 		reset();
+	}
+	unsigned long long hash() {
+		unsigned long long ret = 0;
+		unsigned long long a = 63689, b = 378551;
+		for (int i = 1; i <= BOARDSIZE; i++) {
+			for (int j = 1; j <= BOARDSIZE; j++) {
+				ret = ret * a + B[i][j];
+				a *= b;
+			}
+		}
+		return ret;
 	}
 	/*
 	 * This function reset the board, the board intersections are labeled with 0,
@@ -228,16 +239,14 @@ public:
 					// Case 2: no empty intersection in the neighborhood
 				    // Case 2.1: Surround by the self piece
 				    if (num_neighborhood_self + num_neighborhood_boun == MAXDIRECTION) {
-						int check_flag = 0, check_eye_flag = num_neighborhood_boun;
+						int check_eye_flag = num_neighborhood_boun;
 						for (int d = 0 ; d < MAXDIRECTION; ++d) {
 					    	// Avoid fill self eye
-						    if (NeighboorhoodState[d] == SELF && Liberties[d] > 1)
-								check_eye_flag++;
 					    	// Check if there is one self component which has more than one liberty
-					    	if (NeighboorhoodState[d] == SELF && Liberties[d] > 1)
-								check_flag = 1;
+						    if (NeighboorhoodState[d] == SELF && Liberties[d] > 1)
+								check_eye_flag++;;
 						}
-						if (check_flag == 1 && check_eye_flag != 4)
+						if (check_eye_flag > 1 && check_eye_flag != 4)
 					    	next_x = x, next_y = y;
 				    } else if (num_neighborhood_oppo > 0) {
 				    	// Case 2.2: Surround by opponent or both side's pieces.
@@ -337,7 +346,7 @@ private:
 	 * */
 	int count_liberty(int x, int y, int label, int ConnectBoard[][BOUNDARYSIZE]) {
 	    // Label the current intersection
-	    ConnectBoard[x][y] |= label;
+	    ConnectBoard[x][y] |= 1<<label;
 	    int ret = 0;
 	    for (int d = 0 ; d < MAXDIRECTION; d++) {
 	    	int tx = x + DirectionX[d],

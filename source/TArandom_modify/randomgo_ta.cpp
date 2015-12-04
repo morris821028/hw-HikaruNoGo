@@ -200,9 +200,8 @@ void gtp_main(int display) {
             sscanf(Input, "play %s %s", Color, Move);
             gtp_play(Color, Move, board, game_length, GameRecord);
             game_length++;
-            if (display==1) {
-            gtp_showboard(board);
-            }
+            if (display==1)
+            	gtp_showboard(board);
         } else if (strcmp(Command, "genmove")==0) {
             sscanf(Input, "genmove %s", Color);
             gtp_genmove(board, Color, time_limit, game_length, GameRecord);
