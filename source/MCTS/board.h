@@ -244,9 +244,9 @@ public:
 					    	// Avoid fill self eye
 					    	// Check if there is one self component which has more than one liberty
 						    if (NeighboorhoodState[d] == SELF && Liberties[d] > 1)
-								check_eye_flag++;;
+								check_eye_flag++;
 						}
-						if (check_eye_flag > 1 && check_eye_flag != 4)
+						if (check_eye_flag >= 1 && check_eye_flag != 4)
 					    	next_x = x, next_y = y;
 				    } else if (num_neighborhood_oppo > 0) {
 				    	// Case 2.2: Surround by opponent or both side's pieces.
