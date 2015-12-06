@@ -181,7 +181,72 @@ public:
 	    }
 	    return legal_flag == 1;
 	}
+	void compute_comp_liberty(int comp_liberty[BOUNDARYSIZE][BOUNDARYSIZE]) {
+		static struct Disjoint_Set {
+			int parent[BOUNDARYSIZE * BOUNDARYSIZE];
+			int libert[BOUNDARYSIZE * BOUNDARYSIZE];
+			void init(int n) {
+				for (int i = 0; i < n; i++)
+					parent[i] = i;
+			}
+			int findp(int x) {
+				return parent[x] == x ? x : (parent[x] = findp(parent[x]));
+			}
+			void joint(int x, int y) {
+				x = findp(x), y = findp(y);
+				if (x == y)	return ;
+				parent[x] = y;
+			}
+		} DisjointSet;
+		static int cases = 0, used[BOUNDARYSIZE][BOUNDARYSIZE] = {};
+		memset(comp_liberty, 0, sizeof(comp_liberty));
+		DisjointSet.init(BOUNDARYSIZE * BOUNDARYSIZE);
+		for (int i = 1; i <= BOARDSIZE; i++) {
+			for (int j = 1; j <= BOARDSIZE; j++) {
+				if (GETBOARD(i, j) == EMPTY)
+					continue;
+				for (int k = 0; k < MAXDIRECTION; k++) {
+					int tx = i+DirectionX[k],
+	    				ty = j+DirectionY[k];
+	    			if (GETBOARD(i, j) == GETBOARD(tx, ty)) {
+	    				DisjointSet.joint(i*BOUNDARYSIZE+j, tx*BOUNDARYSIZE+ty);
+	    			}
+				}
+			}
+		}
+		for (int i = 1; i <= BOARDSIZE; i++) {
+			for (int j = 1; j <= BOARDSIZE; j++) {
+				if (GETBOARD(i, j) == EMPTY)
+					continue;
+				int x = i*BOUNDARYSIZE+j;
+				
+				if (DisjointSet.parent[x] == x) {
+					cases++;
+					DisjointSet.libert[x] = count_liberty_slow(i, j, used, cases);
+				}
+			}
+		}
+		for (int i = 1; i <= BOARDSIZE; i++) {
+			for (int j = 1; j <= BOARDSIZE; j++) {
+				if (GETBOARD(i, j) == EMPTY)
+					continue;
+				int x = i*BOUNDARYSIZE+j;
+				comp_liberty[i][j] = DisjointSet.libert[DisjointSet.findp(x)];
+			}
+		} 
+	}
+	void count_liberty_faster(int x, int y, int Liberties[], int comp_liberty[BOUNDARYSIZE][BOUNDARYSIZE]) {
+		for (int d = 0; d < MAXDIRECTION; ++d) {
+	    	Liberties[d] = 0;
+	    	int tx = x+DirectionX[d],
+	    		ty = y+DirectionY[d],
+				state = GETBOARD(tx, ty);
+			if (state == BLACK || state == WHITE)
+		    	Liberties[d] = comp_liberty[tx][ty];
+	    }
+	}
 	int gen_legal_move(int turn, int game_length, set<mBoard> &GameRecord, int MoveList[]) {
+		int comp_liberty[BOUNDARYSIZE][BOUNDARYSIZE];
 	    mBoard NextBoard;
 	    int num_neighborhood_self = 0,
 	    	num_neighborhood_oppo = 0,
@@ -193,6 +258,7 @@ public:
 	    int NeighboorhoodState[4];
 	    bool eat_move = 0;
 	    /* O(n^2 n^2) = O(10000) */
+	    compute_comp_liberty(comp_liberty);
 	    for (int x = 1 ; x <= BOARDSIZE; ++x) {
 			for (int y = 1 ; y <= BOARDSIZE; ++y) {
 				if (GETBOARD(x, y) != EMPTY)
@@ -210,7 +276,7 @@ public:
 				// check if the emtpy intersection is a legal move
 				next_x = next_y = 0;
 				eat_move = 0;
-				count_liberty(x, y, Liberties);
+				count_liberty_faster(x, y, Liberties, comp_liberty);
 				// Case 1: exist empty intersection in the neighborhood
 				if (num_neighborhood_empt > 0) {
 				     next_x = x, next_y = y;
@@ -335,6 +401,22 @@ private:
 		    	ret++;
 			else if (GETBOARD(tx, ty) == GETBOARD(x, y))
 		    	ret += count_liberty(tx, ty, label, ConnectBoard);
+	    }
+	    return ret;
+	}
+	int count_liberty_slow(int x, int y, int used[][BOUNDARYSIZE], int cases) {
+	    used[x][y] = cases;
+	    int ret = 0;
+	    for (int d = 0 ; d < MAXDIRECTION; d++) {
+	    	int tx = x + DirectionX[d],
+				ty = y + DirectionY[d];
+			if (used[tx][ty] == cases)
+				continue;
+			used[tx][ty] = cases;
+			if (GETBOARD(tx, ty) == EMPTY)
+		    	ret++;
+			else if (GETBOARD(tx, ty) == GETBOARD(x, y))
+		    	ret += count_liberty_slow(tx, ty, used, cases);
 	    }
 	    return ret;
 	}

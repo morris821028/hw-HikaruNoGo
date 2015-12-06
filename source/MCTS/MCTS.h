@@ -24,7 +24,7 @@ struct Node {
 	}
 };
 
-#define MAXNODES 1024
+#define MAXNODES 4096
 class MCTS {
 public:
 	Node _mem[MAXNODES];
@@ -80,7 +80,7 @@ public:
 	}
 	int run(int time_limit) {
 		srand(time(NULL));
-		const int MAXSIM = 20;
+		const int MAXSIM = 30;
 		clock_t start_t, end_t, now_t;
 	    // record start time
 	    start_t = clock();
@@ -160,7 +160,7 @@ public:
 		return ok;
 	}
 	int simulation(Node *leaf, set<mBoard> &tGameRecord) {
-	    static int MoveList[HISTORYLENGTH];
+	    int MoveList[HISTORYLENGTH];
 		mBoard tmpBoard = leaf->board;
 	    int num_legal_moves = 0, move;
 	    int game_length = leaf->game_length;
