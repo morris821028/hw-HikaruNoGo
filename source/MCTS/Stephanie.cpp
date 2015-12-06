@@ -55,16 +55,16 @@ void gtp_final_score(mBoard &board) {
     else // draw
 		cout << "0" << endl << endl<< endl;
 }
-void gtp_undo(mBoard &board, int game_length, int GameRecord[MAXGAMELENGTH][BOUNDARYSIZE][BOUNDARYSIZE]) {
+void gtp_undo(mBoard &board, int game_length, mBoard GameRecord[MAXGAMELENGTH]) {
     if (game_length != 0)
-    	memmove(board.B, GameRecord[game_length], sizeof(int)*BOUNDARYSIZE*BOUNDARYSIZE);
+    	memcpy(&board, &GameRecord[game_length], sizeof(mBoard));
     cout << "= " << endl << endl;
 }
 void gtp_showboard(mBoard &board) {
     for (int i = 1; i <= BOARDSIZE; ++i) {
 		cout << "#" << 10-i;
 		for (int j = 1; j <= BOARDSIZE; ++j) {
-		    switch (board.B[i][j]) {
+		    switch (board.GETBOARD(i, j)) {
 				case EMPTY: cout << " .";break;
 				case BLACK: cout << " X";break;
 				case WHITE: cout << " O";break;
@@ -118,7 +118,7 @@ void gtp_komi(double komi) {
     _komi = komi;
     cout << "= " << endl << endl;
 }
-void gtp_play(char Color[], char Move[], mBoard &board, int game_length, int GameRecord[MAXGAMELENGTH][BOUNDARYSIZE][BOUNDARYSIZE]) {
+void gtp_play(char Color[], char Move[], mBoard &board, int game_length, mBoard GameRecord[MAXGAMELENGTH]) {
     int turn, move_i, move_j;
     if (Color[0] == 'b' || Color[0] == 'B')
 		turn = BLACK;
@@ -138,7 +138,7 @@ void gtp_play(char Color[], char Move[], mBoard &board, int game_length, int Gam
     }
     cout << "= " << endl << endl;
 }
-void gtp_genmove(mBoard &board, char Color[], int time_limit, int game_length, int GameRecord[MAXGAMELENGTH][BOUNDARYSIZE][BOUNDARYSIZE]){
+void gtp_genmove(mBoard &board, char Color[], int time_limit, int game_length, mBoard GameRecord[MAXGAMELENGTH]){
     int turn = (Color[0]=='b'||Color[0]=='B')?BLACK:WHITE;
     int move = simulator.genmove(board, turn, time_limit, game_length, GameRecord);
     int move_i, move_j;
@@ -164,9 +164,9 @@ void gtp_main(int display) {
     int ivalue;
     double dvalue;
     mBoard board;
+    mBoard GameRecord[MAXGAMELENGTH];
     int NumCapture[3]={0}; // 1:Black, 2: White
     int time_limit = DEFAULTTIME;
-    int GameRecord[MAXGAMELENGTH][BOUNDARYSIZE][BOUNDARYSIZE]={{{0}}};
     int game_length = 0;
     if (display==1) {
 		gtp_list_commands();

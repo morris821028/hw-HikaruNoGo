@@ -1,5 +1,6 @@
 #include "board.h"
 #include <vector>
+#include <cstring>
 using namespace std;
 
 struct Node {
@@ -25,12 +26,13 @@ struct Result {
 	int games, wins;
 	float sum, sqsum;
 };
-Node _mem[8192];
+#define MAXNODES 1024
 class MCTS {
 public:
+	Node _mem[MAXNODES];
 	Node *root;
 	int cases, nodesize = 0;
-	int GameRecord[MAXGAMELENGTH][BOUNDARYSIZE][BOUNDARYSIZE];
+	mBoard GameRecord[MAXGAMELENGTH];
 	struct Pick {
 		Node* (*pick)(Node*, Node*);
 		static Node* max(Node *a, Node *b) {
@@ -48,17 +50,18 @@ public:
 	} decider;
 	
 	Node* newNode(mBoard board) {
+		assert(nodesize < MAXNODES);
 		Node *p = &_mem[nodesize++];
 		*p = Node(), p->board = board;
 		return p;
 	}
-	void init(mBoard init_board, int game_length, int turn, int GR[MAXGAMELENGTH][BOUNDARYSIZE][BOUNDARYSIZE]) {
+	void init(mBoard init_board, int game_length, int turn, mBoard GR[MAXGAMELENGTH]) {
 		cases = 0;
 		nodesize = 0;
 		root = newNode(init_board);
 		root->game_length = game_length, root->turn = turn;
 		for (int i = 0; i <= game_length; i++)
-			memcpy(GameRecord[i], GR[i], sizeof(int)*BOUNDARYSIZE*BOUNDARYSIZE);
+			memcpy(&GameRecord[i], &GR[i], sizeof(mBoard));
 	}
 	int rand_pick_move(int num_legal_moves, int MoveList[HISTORYLENGTH]) {
 	    if (num_legal_moves == 0)
@@ -66,20 +69,20 @@ public:
 		int move_id = rand()%num_legal_moves;
 		return MoveList[move_id];
 	}
-	void record(mBoard board, int GameRecord[MAXGAMELENGTH][BOUNDARYSIZE][BOUNDARYSIZE], int game_length) {
-		memcpy(GameRecord[game_length], board.B, sizeof(int)*BOUNDARYSIZE*BOUNDARYSIZE);
+	void record(mBoard board, mBoard GameRecord[MAXGAMELENGTH], int game_length) {
+		memcpy(&GameRecord[game_length], &board, sizeof(mBoard));
 	}
 	void do_move(mBoard &board, int turn, int move) {
 	    int move_x = (move % 100) / 10, move_y = move % 10;
 	    if (move < 100)
-			board.B[move_x][move_y] = turn;
+			board.SETBOARD(move_x, move_y, turn);
 	    else
 			board.update_board(move_x, move_y, turn);
 	}
 	int run() {
 		srand(time(NULL));
-		const int MAXSIM = 10;
-		for (int it = 0; it < 20; it++) {
+		const int MAXSIM = 15;
+		for (int it = 0; it < 10; it++) {
 			Node *leaf = selection();
 			int ways = expansion(leaf);
 			for (int i = 0; i < leaf->son.size(); i++) {
@@ -127,7 +130,7 @@ public:
 		return NULL;
 	}
 	int expansion(Node *leaf) {
-		int MoveList[HISTORYLENGTH];
+		static int MoveList[HISTORYLENGTH];
 		int num_legal_moves = leaf->board.gen_legal_move(leaf->turn, leaf->game_length, GameRecord, MoveList);
 		int ok = 0;
 		for (int i = 0; i < num_legal_moves; i++) {
@@ -148,7 +151,7 @@ public:
 		return ok;
 	}
 	int simulation(Node *leaf) {
-	    int MoveList[HISTORYLENGTH];
+	    static int MoveList[HISTORYLENGTH];
 		mBoard tmpBoard = leaf->board;
 	    int num_legal_moves = 0, move;
 	    int game_length = leaf->game_length;

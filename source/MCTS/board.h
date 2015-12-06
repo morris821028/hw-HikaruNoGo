@@ -10,6 +10,7 @@
 #include <ctime>
 #include <vector>
 #include <limits.h>
+#include <assert.h>
 
 using namespace std;
 
@@ -19,61 +20,65 @@ static double _komi =  DEFAULTKOMI;
 static const int DirectionX[MAXDIRECTION] = {-1, 1, 0, 0};
 static const int DirectionY[MAXDIRECTION] = { 0, 0, 1,-1};
 
+#define BITSIZE ((BOUNDARYSIZE*BOUNDARYSIZE*4)/32 + 1)
+//#define BITSIZE 16
 class mBoard {
 public:
-	int B[BOUNDARYSIZE][BOUNDARYSIZE];
+//	int B[BOUNDARYSIZE][BOUNDARYSIZE];
+	unsigned int bitB[BITSIZE];	// (x, y) has 4 bits
 	mBoard() {
 		reset();
 	}
-	unsigned long long hash() {
-		unsigned long long ret = 0;
-		unsigned long long a = 63689, b = 378551;
-		for (int i = 1; i <= BOARDSIZE; i++) {
-			for (int j = 1; j <= BOARDSIZE; j++) {
-				ret = ret * a + B[i][j];
-				a *= b;
-			}
-		}
-		return ret;
+	inline void CLRBOARD(int x, int y) {
+		x = x * BOUNDARYSIZE + y;
+		bitB[x>>3] &= ~(15U<<((x&7)<<2));
 	}
-	/*
-	 * This function reset the board, the board intersections are labeled with 0,
-	 * the boundary intersections are labeled with 3.
-	 * */
+	inline void ORBOARD(int x, int y, unsigned int v) {
+		assert(v <= 15);
+		x = x * BOUNDARYSIZE + y;
+		bitB[x>>3] |= v<<((x&7)<<2);
+	}
+	inline int GETBOARD(int x, int y) {
+		x = x * BOUNDARYSIZE + y;
+		return (bitB[x>>3]>>((x&7)<<2))&15;
+	}
+	inline void SETBOARD(int x, int y, unsigned int v) {
+		CLRBOARD(x, y);
+		ORBOARD(x, y, v);
+	}
 	void reset() {
-		memset(B, EMPTY, sizeof(B));
-	    for (int i = 0 ; i < BOUNDARYSIZE; i++) {
-			B[0][i] = B[i][0] = BOUNDARY;
-			B[BOUNDARYSIZE-1][i] = B[i][BOUNDARYSIZE-1] = BOUNDARY;
+		memset(bitB, 0, sizeof(bitB));
+		for (int i = 0; i < BOUNDARYSIZE; i++) {
+			ORBOARD(0, i, BOUNDARY);
+			ORBOARD(i, 0, BOUNDARY);
+			ORBOARD(BOUNDARYSIZE-1, i, BOUNDARY);
+			ORBOARD(i, BOUNDARYSIZE-1, BOUNDARY);
 		}
 	}
-	/*
-	 * This function count the liberties of the given intersection's neighboorhod
-	 * */
+	/* O(n^2) = O(121) */
 	void count_liberty(int X, int Y, int Liberties[MAXDIRECTION]) {
-	    int ConnectBoard[BOUNDARYSIZE][BOUNDARYSIZE];
-	    // Initial the ConnectBoard
-	    memset(ConnectBoard, 0, sizeof(ConnectBoard));
+	    mBoard ConnectBoard;
+	    memset(ConnectBoard.bitB, 0, sizeof(ConnectBoard.bitB));
 	    memset(Liberties, 0, sizeof(int)*MAXDIRECTION);
-	    
-	    // Find the same connect component and its liberity
 	    for (int d = 0; d < MAXDIRECTION; ++d) {
 	    	int tx = X+DirectionX[d],
-	    		ty = Y+DirectionY[d];
-			if (B[tx][ty] == BLACK || B[tx][ty] == WHITE)
-		    	Liberties[d] = count_liberty(tx, ty, d, ConnectBoard);
+	    		ty = Y+DirectionY[d],
+				state = GETBOARD(tx, ty);
+			if (state == BLACK || state == WHITE) {
+				if (ConnectBoard.GETBOARD(tx, ty)) {
+					Liberties[d] = Liberties[__builtin_ctz(ConnectBoard.GETBOARD(tx, ty))];
+				} else {
+		    		Liberties[d] = count_liberty(tx, ty, d, ConnectBoard);
+		    	}
+		    }
 	    }
 	}
-	/*
-	 * This function count the number of empty, self, opponent, and boundary intersections of the neighboorhod
-	 * and saves the type in NeighboorhoodState.
-	 * */
+	/* O(4) */
 	void count_neighboorhood_state(int X, int Y, int turn, int* empt, int* self, int* oppo ,int* boun, int NeighboorhoodState[MAXDIRECTION]) {
 	    for (int d = 0 ; d < MAXDIRECTION; ++d) {
 	    	int tx = X + DirectionX[d],
 	    		ty = Y + DirectionY[d];
-			// check the number of nonempty neighbor
-			switch(B[tx][ty]) {
+			switch(GETBOARD(tx, ty)) {
 		    	case EMPTY:    
 					(*empt)++, NeighboorhoodState[d] = EMPTY;
 					break;
@@ -95,25 +100,17 @@ public:
 			}
 	    }
 	}
-	/*
-	 * This function remove the connect component contains (X, Y) with color "turn"
-	 * And return the number of remove stones.
-	 * */
 	int remove_piece(int X, int Y, int turn) {
-	    int remove_stones = (B[X][Y] == EMPTY) ? 0 : 1;
-	    B[X][Y] = EMPTY;
+	    int remove_stones = (GETBOARD(X, Y) == EMPTY) ? 0 : 1;
+	    CLRBOARD(X, Y);
 	    for (int d = 0; d < MAXDIRECTION; ++d) {
 	    	int tx = X + DirectionX[d],
 	    		ty = Y + DirectionY[d];
-			if (B[tx][ty] == turn)
+			if (GETBOARD(tx, ty) == turn)
 		    	remove_stones += remove_piece(tx, ty, turn);
 		}
 	    return remove_stones;
 	}
-	/*
-	 * This function update Board with place turn's piece at (X,Y).
-	 * Note that this function will not check if (X, Y) is a legal move or not.
-	 * */
 	void update_board(int X, int Y, int turn) {
 	    int num_neighborhood_self = 0,
 			num_neighborhood_oppo = 0,
@@ -126,18 +123,16 @@ public:
 		    &num_neighborhood_self,
 		    &num_neighborhood_oppo,
 		    &num_neighborhood_boun, NeighboorhoodState);
-	    // check if there is opponent piece in the neighboorhood
 	    if (num_neighborhood_oppo != 0) {
 			count_liberty(X, Y, Liberties);
 			for (int d = 0 ; d < MAXDIRECTION; ++d) {
 				int tx = X + DirectionX[d],
 					ty = Y + DirectionY[d];
-		    	// check if there is opponent component only one liberty
-		    	if (B[tx][ty] != EMPTY && NeighboorhoodState[d] == OPPONENT && Liberties[d] == 1)
-					remove_piece(tx, ty, B[tx][ty]);
+		    	if (GETBOARD(tx, ty) != EMPTY && NeighboorhoodState[d] == OPPONENT && Liberties[d] == 1)
+					remove_piece(tx, ty, GETBOARD(tx, ty));
 			}
 	    }
-	    B[X][Y] = turn;
+	    SETBOARD(X, Y, turn);
 	}
 	/*
 	 * This function update Board with place turn's piece at (X,Y).
@@ -145,7 +140,7 @@ public:
 	 * */
 	int legal_step(int X, int Y, int turn) {
 	    // Check the given coordination is legal or not
-	    if (X < 1 || X > BOARDSIZE || Y < 1 || Y > BOARDSIZE || B[X][Y] != EMPTY)
+	    if (X < 1 || X > BOARDSIZE || Y < 1 || Y > BOARDSIZE || GETBOARD(X, Y) != EMPTY)
 			return 0;
 	    int num_neighborhood_self = 0,
 			num_neighborhood_oppo = 0,
@@ -158,47 +153,39 @@ public:
 		    &num_neighborhood_self,
 		    &num_neighborhood_oppo,
 		    &num_neighborhood_boun, NeighboorhoodState);
-	    // Check if the move is a legal move
-	    // Condition 1: there is a empty intersection in the neighboorhood
+		    
 	    int legal_flag = 0;
 	    count_liberty(X, Y, Liberties);
+	    
 	    if (num_neighborhood_empt != 0)
 			legal_flag = 1;
 	    else {
-			// Condition 2: there is a self string has more than one liberty
 			for (int d = 0; d < MAXDIRECTION; ++d) {
 			    if (NeighboorhoodState[d] == SELF && Liberties[d] > 1)
 					legal_flag = 1;
 			}
 			if (legal_flag == 0) {
-			// Condition 3: there is a opponent string has exactly one liberty
 			    for (int d = 0; d < MAXDIRECTION; ++d) {
 					if (NeighboorhoodState[d] == OPPONENT && Liberties[d] == 1)
-				    legal_flag = 1;
+				    	legal_flag = 1;
 			    }
 			}
 	    }
 	
 	    if (legal_flag == 1) {
-	    	// check if there is opponent piece in the neighboorhood
 			if (num_neighborhood_oppo != 0) {
 		    	for (int d = 0 ; d < MAXDIRECTION; ++d) {
 		    		int tx = X + DirectionX[d],
 						ty = Y + DirectionY[d];
-					// check if there is opponent component only one liberty
-					if (NeighboorhoodState[d] == OPPONENT && Liberties[d] == 1 && B[tx][ty]!=EMPTY)
-			    		remove_piece(tx, ty, B[tx][ty]);
+					if (NeighboorhoodState[d] == OPPONENT && Liberties[d] == 1 && GETBOARD(tx, ty) != EMPTY)
+			    		remove_piece(tx, ty, GETBOARD(tx, ty));
 		    	}
 			}
-			B[X][Y] = turn;
+			SETBOARD(X, Y, turn);
 	    }
 	    return legal_flag == 1;
 	}
-	/*
-	 * This function return the number of legal moves with clor "turn" and
-	 * saves all legal moves in MoveList
-	 * */
-	int gen_legal_move(int turn, int game_length, int GameRecord[][BOUNDARYSIZE][BOUNDARYSIZE], int MoveList[]) {
+	int gen_legal_move(int turn, int game_length, mBoard GameRecord[], int MoveList[]) {
 	    mBoard NextBoard;
 	    int num_neighborhood_self = 0,
 	    	num_neighborhood_oppo = 0,
@@ -209,9 +196,10 @@ public:
 	    int Liberties[4];
 	    int NeighboorhoodState[4];
 	    bool eat_move = 0;
+	    /* O(n^2 n^2) = O(10000) */
 	    for (int x = 1 ; x <= BOARDSIZE; ++x) {
 			for (int y = 1 ; y <= BOARDSIZE; ++y) {
-				if (B[x][y] != EMPTY)
+				if (GETBOARD(x, y) != EMPTY)
 					continue;
 		    	// check if current
 				// check the liberty of the neighborhood intersections
@@ -234,7 +222,7 @@ public:
 				     for (int d = 0 ; d < MAXDIRECTION; ++d) {
 					 	if (NeighboorhoodState[d] == OPPONENT && Liberties[d] == 1)
 					    	eat_move = 1;
-				     }	
+				     }				     
 				} else {
 					// Case 2: no empty intersection in the neighborhood
 				    // Case 2.1: Surround by the self piece
@@ -257,7 +245,7 @@ public:
 					    	if (NeighboorhoodState[d] == SELF && Liberties[d] > 1)
 								check_flag = 1;
 					    	// Check if there is one opponent's component which has exact one liberty
-					    	if (NeighboorhoodState[d] == OPPONENT && Liberties[d] == 1)
+					    	else if (NeighboorhoodState[d] == OPPONENT && Liberties[d] == 1)
 								eat_flag = 1;
 						}
 						if (check_flag == 1) {
@@ -281,17 +269,12 @@ public:
 					if (eat_move == 1)
 						NextBoard.update_board(next_x, next_y, turn);
 					else
-						NextBoard.B[x][y] = turn;
+						NextBoard.SETBOARD(x, y, turn);
 					// Check the history to avoid the repeat board
 					bool repeat_move = 0;
+					/* O(m) linear increase */
 					for (int t = 0 ; t < game_length; ++t) {
-						bool repeat_flag = 1;
-						for (int i = 1; i <= BOARDSIZE; ++i) {
-						    for (int j = 1; j <= BOARDSIZE; ++j) {
-								if (NextBoard.B[i][j] != GameRecord[t][i][j])
-							    	repeat_flag = 0, i = j = BOARDSIZE;
-							}
-						}
+						bool repeat_flag = NextBoard == GameRecord[t];
 						if (repeat_flag == 1) {
 						   	repeat_move = 1;
 						    break;
@@ -299,7 +282,7 @@ public:
 					}
 					if (repeat_move == 0) {
 						// 3 digit zxy, z means eat or not, and put at (x, y)
-						MoveList[legal_moves] = eat_move * 100 + next_x * 10 + y ;
+						MoveList[legal_moves] = eat_move * 100 + next_x * 10 + next_y;
 						legal_moves++;
 					}
 				}
@@ -316,14 +299,14 @@ public:
 	    black = white = 0;
 	    for (int i = 1 ; i <= BOARDSIZE; ++i) {
 			for (int j = 1; j <= BOARDSIZE; ++j) {
-			    switch(B[i][j]) {
+			    switch(GETBOARD(i, j)) {
 					case EMPTY:
 				    	is_black = is_white = 0;
 				    	for (int d = 0 ; d < MAXDIRECTION; ++d) {
 				    		int tx = i+DirectionX[d], 
 								ty = j+DirectionY[d];
-							if (B[tx][ty] == BLACK) is_black = 1;
-							else if (B[tx][ty] == WHITE) is_white = 1;
+							if (GETBOARD(tx, ty) == BLACK) is_black = 1;
+							else if (GETBOARD(tx, ty) == WHITE) is_white = 1;
 				    	}
 				    	if (is_black + is_white == 1)
 							black += is_black, white += is_white;
@@ -339,26 +322,23 @@ public:
 	    }
 	    return black - white;
 	}
+	bool operator==(const mBoard &board) const {
+		return memcmp(this->bitB, board.bitB, sizeof(board.bitB)) == 0;
+	}
 private:
-	/*
-	 * This function return the total number of liberity of the string of (X, Y) and
-	 * the string will be label with 'label'.
-	 * */
-	int count_liberty(int x, int y, int label, int ConnectBoard[][BOUNDARYSIZE]) {
-	    // Label the current intersection
-	    ConnectBoard[x][y] |= 1<<label;
+	/* 0 <= label <= 3, O(n^n) = O(121) */
+	int count_liberty(int x, int y, int label, mBoard &ConnectBoard) {
+	    ConnectBoard.ORBOARD(x, y, 1<<label);
 	    int ret = 0;
 	    for (int d = 0 ; d < MAXDIRECTION; d++) {
 	    	int tx = x + DirectionX[d],
 				ty = y + DirectionY[d];
-			// Check this intersection has been visited or not
-			if ((ConnectBoard[tx][ty]>>label)&1)
+			if ((ConnectBoard.GETBOARD(tx, ty)>>label)&1)
 				continue;
-			// Check this intersection is not visited yet
-			ConnectBoard[tx][ty] |=(1<<label);
-			if (B[tx][ty] == EMPTY) // This neighboorhood is empty
+			ConnectBoard.ORBOARD(tx, ty, 1<<label);
+			if (GETBOARD(tx, ty) == EMPTY)
 		    	ret++;
-			else if (B[tx][ty] == B[x][y]) // This neighboorhood is self stone
+			else if (GETBOARD(tx, ty) == GETBOARD(x, y))
 		    	ret += count_liberty(tx, ty, label, ConnectBoard);
 	    }
 	    return ret;
