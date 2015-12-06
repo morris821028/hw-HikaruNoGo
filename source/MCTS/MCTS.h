@@ -22,10 +22,7 @@ struct Node {
 		UCB = sum / games;
 	}
 };
-struct Result {
-	int games, wins;
-	float sum, sqsum;
-};
+
 #define MAXNODES 1024
 class MCTS {
 public:
@@ -79,9 +76,13 @@ public:
 	    else
 			board.update_board(move_x, move_y, turn);
 	}
-	int run() {
+	int run(int time_limit) {
 		srand(time(NULL));
 		const int MAXSIM = 15;
+		clock_t start_t, end_t, now_t;
+	    // record start time
+	    start_t = clock();
+	    end_t = start_t + CLOCKS_PER_SEC * time_limit;
 		for (int it = 0; it < 10; it++) {
 			Node *leaf = selection();
 			int ways = expansion(leaf);
@@ -99,6 +100,8 @@ public:
 				p->updatescore();
 				backpropagation(p);
 			}
+			if (clock() > end_t)
+				break;
 		}
 				
 		if (root->son.size() == 0)

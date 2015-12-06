@@ -59,17 +59,13 @@ public:
 	void count_liberty(int X, int Y, int Liberties[MAXDIRECTION]) {
 	    mBoard ConnectBoard;
 	    memset(ConnectBoard.bitB, 0, sizeof(ConnectBoard.bitB));
-	    memset(Liberties, 0, sizeof(int)*MAXDIRECTION);
 	    for (int d = 0; d < MAXDIRECTION; ++d) {
+	    	Liberties[d] = 0;
 	    	int tx = X+DirectionX[d],
 	    		ty = Y+DirectionY[d],
 				state = GETBOARD(tx, ty);
 			if (state == BLACK || state == WHITE) {
-				if (ConnectBoard.GETBOARD(tx, ty)) {
-					Liberties[d] = Liberties[__builtin_ctz(ConnectBoard.GETBOARD(tx, ty))];
-				} else {
-		    		Liberties[d] = count_liberty(tx, ty, d, ConnectBoard);
-		    	}
+		    	Liberties[d] = count_liberty(tx, ty, d, ConnectBoard);
 		    }
 	    }
 	}
@@ -228,13 +224,13 @@ public:
 				    // Case 2.1: Surround by the self piece
 				    if (num_neighborhood_self + num_neighborhood_boun == MAXDIRECTION) {
 						int check_eye_flag = num_neighborhood_boun;
+				    	// Avoid fill self eye
+				    	// Check if there is one self component which has more than one liberty
 						for (int d = 0 ; d < MAXDIRECTION; ++d) {
-					    	// Avoid fill self eye
-					    	// Check if there is one self component which has more than one liberty
 						    if (NeighboorhoodState[d] == SELF && Liberties[d] > 1)
 								check_eye_flag++;
 						}
-						if (check_eye_flag >= 1 && check_eye_flag != 4)
+						if (check_eye_flag >= 1 && check_eye_flag < 4)
 					    	next_x = x, next_y = y;
 				    } else if (num_neighborhood_oppo > 0) {
 				    	// Case 2.2: Surround by opponent or both side's pieces.
@@ -245,7 +241,7 @@ public:
 					    	if (NeighboorhoodState[d] == SELF && Liberties[d] > 1)
 								check_flag = 1;
 					    	// Check if there is one opponent's component which has exact one liberty
-					    	else if (NeighboorhoodState[d] == OPPONENT && Liberties[d] == 1)
+					    	if (NeighboorhoodState[d] == OPPONENT && Liberties[d] == 1)
 								eat_flag = 1;
 						}
 						if (check_flag == 1) {
@@ -299,7 +295,7 @@ public:
 	    black = white = 0;
 	    for (int i = 1 ; i <= BOARDSIZE; ++i) {
 			for (int j = 1; j <= BOARDSIZE; ++j) {
-			    switch(GETBOARD(i, j)) {
+			    switch (GETBOARD(i, j)) {
 					case EMPTY:
 				    	is_black = is_white = 0;
 				    	for (int d = 0 ; d < MAXDIRECTION; ++d) {
@@ -342,6 +338,21 @@ private:
 		    	ret += count_liberty(tx, ty, label, ConnectBoard);
 	    }
 	    return ret;
+	}
+	void show() {
+	    for (int i = 0; i < BOUNDARYSIZE; ++i) {
+			cout << "#" << 10-i;
+			for (int j = 0; j < BOUNDARYSIZE; ++j) {
+			    switch (GETBOARD(i, j)) {
+					case EMPTY: cout << " .";break;
+					case BLACK: cout << " X";break;
+					case WHITE: cout << " O";break;
+					case BOUNDARY: cout << " -";break;
+		    	}
+			}
+			cout << endl;
+	    }
+	    cout << endl << endl;
 	}
 };
 

@@ -38,7 +38,7 @@ public:
 	 * */
 	int genmove(mBoard &board, int turn, int time_limit, int game_length, mBoard GameRecord[MAXGAMELENGTH]) {
 		mcts.init(board, game_length, turn, GameRecord);
-		int return_move = mcts.run();
+		int return_move = mcts.run(time_limit);
 		do_move(board, turn, return_move);
 		return return_move % 100;
 	}
