@@ -11,7 +11,7 @@
 #include <vector>
 #include <limits.h>
 #include <assert.h>
-
+#include <set>
 using namespace std;
 
 static int _board_size = BOARDSIZE;
@@ -181,7 +181,7 @@ public:
 	    }
 	    return legal_flag == 1;
 	}
-	int gen_legal_move(int turn, int game_length, mBoard GameRecord[], int MoveList[]) {
+	int gen_legal_move(int turn, int game_length, set<mBoard> &GameRecord, int MoveList[]) {
 	    mBoard NextBoard;
 	    int num_neighborhood_self = 0,
 	    	num_neighborhood_oppo = 0,
@@ -267,15 +267,7 @@ public:
 					else
 						NextBoard.SETBOARD(x, y, turn);
 					// Check the history to avoid the repeat board
-					bool repeat_move = 0;
-					/* O(m) linear increase */
-					for (int t = 0 ; t < game_length; ++t) {
-						bool repeat_flag = NextBoard == GameRecord[t];
-						if (repeat_flag == 1) {
-						   	repeat_move = 1;
-						    break;
-						}
-					}
+					bool repeat_move = GameRecord.count(NextBoard) != 0;
 					if (repeat_move == 0) {
 						// 3 digit zxy, z means eat or not, and put at (x, y)
 						MoveList[legal_moves] = eat_move * 100 + next_x * 10 + next_y;
@@ -320,6 +312,13 @@ public:
 	}
 	bool operator==(const mBoard &board) const {
 		return memcmp(this->bitB, board.bitB, sizeof(board.bitB)) == 0;
+	}
+	bool operator<(const mBoard &board) const {
+		for (int i = 0; i < BITSIZE; i++) {
+			if (bitB[i] != board.bitB[i])
+				return bitB[i] < board.bitB[i];
+		}
+		return false;
 	}
 private:
 	/* 0 <= label <= 3, O(n^n) = O(121) */

@@ -1,6 +1,7 @@
 #include "board.h"
 #include <vector>
 #include <cstring>
+#include <set>
 using namespace std;
 
 struct Node {
@@ -29,7 +30,8 @@ public:
 	Node _mem[MAXNODES];
 	Node *root;
 	int cases, nodesize = 0;
-	mBoard GameRecord[MAXGAMELENGTH];
+	set<mBoard> oGameRecord;	// root
+	set<mBoard> iGameRecord;	// iterator middle
 	struct Pick {
 		Node* (*pick)(Node*, Node*);
 		static Node* max(Node *a, Node *b) {
@@ -57,8 +59,8 @@ public:
 		nodesize = 0;
 		root = newNode(init_board);
 		root->game_length = game_length, root->turn = turn;
-		for (int i = 0; i <= game_length; i++)
-			memcpy(&GameRecord[i], &GR[i], sizeof(mBoard));
+		for (int i = 0; i < game_length; i++)
+			oGameRecord.insert(GR[i]);
 	}
 	int rand_pick_move(int num_legal_moves, int MoveList[HISTORYLENGTH]) {
 	    if (num_legal_moves == 0)
@@ -66,8 +68,8 @@ public:
 		int move_id = rand()%num_legal_moves;
 		return MoveList[move_id];
 	}
-	void record(mBoard board, mBoard GameRecord[MAXGAMELENGTH], int game_length) {
-		memcpy(&GameRecord[game_length], &board, sizeof(mBoard));
+	void record(mBoard board, set<mBoard> &GameRecord) {
+		GameRecord.insert(board);
 	}
 	void do_move(mBoard &board, int turn, int move) {
 	    int move_x = (move % 100) / 10, move_y = move % 10;
@@ -78,21 +80,25 @@ public:
 	}
 	int run(int time_limit) {
 		srand(time(NULL));
-		const int MAXSIM = 15;
+		const int MAXSIM = 20;
 		clock_t start_t, end_t, now_t;
 	    // record start time
 	    start_t = clock();
 	    end_t = start_t + CLOCKS_PER_SEC * time_limit;
-		for (int it = 0; it < 10; it++) {
-			Node *leaf = selection();
-			int ways = expansion(leaf);
+	    int rounds = 0;
+		for (int it = 0; it < 100; it++) {
+			rounds++;
+			iGameRecord = oGameRecord;
+			Node *leaf = selection(iGameRecord);
+			int ways = expansion(leaf, iGameRecord);
 			for (int i = 0; i < leaf->son.size(); i++) {
 				Node *p = leaf->son[i];
 				float sum = 0, sqsum = 0;
-				
-				record(p->board, GameRecord, p->game_length+1);
+
+				set<mBoard> tGameRecord = iGameRecord;
 				for (int j = 0; j < MAXSIM; j++) {
-					int score = simulation(p);
+					record(p->board, tGameRecord);
+					int score = simulation(p, tGameRecord);
 					sum += score, sqsum += score * score;
 				}
 				p->sum = sum, p->sqsum = sqsum;
@@ -103,7 +109,7 @@ public:
 			if (clock() > end_t)
 				break;
 		}
-				
+		cerr << "rounds " << rounds << endl;
 		if (root->son.size() == 0)
 			return 0;
 		
@@ -117,7 +123,7 @@ public:
 		}
 		return move;
 	}	
-	Node* selection() {
+	Node* selection(set<mBoard> &sGameRecord) {
 		Node *p = root;
 		while (true) {
 			if (p->son.size() == 0)	
@@ -128,13 +134,13 @@ public:
 				q = decider.pick(q, p->son[i]);
 			q->parent = p;
 			p = q;
-    		record(p->board, GameRecord, p->game_length+1);
+    		record(p->board, sGameRecord);
 		}
 		return NULL;
 	}
-	int expansion(Node *leaf) {
+	int expansion(Node *leaf, set<mBoard> &eGameRecord) {
 		static int MoveList[HISTORYLENGTH];
-		int num_legal_moves = leaf->board.gen_legal_move(leaf->turn, leaf->game_length, GameRecord, MoveList);
+		int num_legal_moves = leaf->board.gen_legal_move(leaf->turn, leaf->game_length, eGameRecord, MoveList);
 		int ok = 0;
 		for (int i = 0; i < num_legal_moves; i++) {
 			if (leaf->game_length < 12) {
@@ -153,13 +159,13 @@ public:
 		}
 		return ok;
 	}
-	int simulation(Node *leaf) {
+	int simulation(Node *leaf, set<mBoard> &tGameRecord) {
 	    static int MoveList[HISTORYLENGTH];
 		mBoard tmpBoard = leaf->board;
 	    int num_legal_moves = 0, move;
 	    int game_length = leaf->game_length;
 	    int turn = leaf->turn;
-	    num_legal_moves = tmpBoard.gen_legal_move(turn, game_length, GameRecord, MoveList);
+	    num_legal_moves = tmpBoard.gen_legal_move(turn, game_length, tGameRecord, MoveList);
 	    
 	    int limit = game_length * game_length;
 	    while (true && limit >= 0) {
@@ -175,10 +181,10 @@ public:
     				continue;
     		}
 			do_move(tmpBoard, turn, move);
-	        record(tmpBoard, GameRecord, game_length+1);
+	        record(tmpBoard, tGameRecord);
 	        game_length++;
 	        turn = turn == BLACK ? WHITE : BLACK;
-	        num_legal_moves = tmpBoard.gen_legal_move(turn, game_length, GameRecord, MoveList);
+	        num_legal_moves = tmpBoard.gen_legal_move(turn, game_length, tGameRecord, MoveList);
 	        limit--;
 	    }
 	    
