@@ -5,7 +5,7 @@ BLACKPLAYER = Stephanie.exe
 #WHITEPLAYER = randomgoTA
 #BLACKPLAYER = Stephanie
 
-GAME_NUM = 1
+GAME_NUM = 2
 SGFFILE_DIR = test
 SGFFILE = result
 SGPREFIX = test
