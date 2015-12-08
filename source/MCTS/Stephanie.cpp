@@ -1,3 +1,7 @@
+#include "board.h"
+#include "config.h"
+#include "simulator.h"
+
 #include <iostream>
 #include <cstdio>
 #include <cstring>
@@ -5,9 +9,6 @@
 #include <ctime>
 #include <vector>
 #include <limits.h>
-#include "board.h"
-#include "config.h"
-#include "simulator.h"
 
 using namespace std;
 

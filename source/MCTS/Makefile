@@ -1,9 +1,10 @@
-## Windows
+## Windows Output Executable file
 WHITEPLAYER = randomgoTA.exe
 BLACKPLAYER = Stephanie.exe
 ## Linux
 #WHITEPLAYER = randomgoTA
 #BLACKPLAYER = Stephanie
+
 GAME_NUM = 1
 SGFFILE_DIR = test
 SGFFILE = result
@@ -23,8 +24,10 @@ TEST_FLAGS = -DUCT -DTEST
 
 all:
 	$(CXX) ./test/randomgo.cpp -o $(WHITEPLAYER)
+	$(CXX) board.cpp -c $(OPT_FLAGS) $(CXX_FLAGS) $(TEST_FLAGS) $(DEBUG_FLAGS)
+	$(CXX) MCTS.cpp -c $(OPT_FLAGS) $(CXX_FLAGS) $(TEST_FLAGS) $(DEBUG_FLAGS)
 	$(CXX) Stephanie.cpp -c $(OPT_FLAGS) $(CXX_FLAGS) $(TEST_FLAGS) $(DEBUG_FLAGS)
-	$(CXX) Stephanie.o -o $(BLACKPLAYER) $(OPT_FLAGS) $(CXX_FLAGS) $(TEST_FLAGS) $(DEBUG_FLAGS)
+	$(CXX) Stephanie.o MCTS.o board.o -o $(BLACKPLAYER) $(OPT_FLAGS) $(CXX_FLAGS) $(TEST_FLAGS) $(DEBUG_FLAGS)
 play:
 	rm -rf ./$(SGFFILE_DIR)/$(SGFFILE)
 	mkdir ./$(SGFFILE_DIR)/$(SGFFILE)
@@ -35,4 +38,4 @@ prof:
 	gprof $(BLACKPLAYER) gmon.out >analysis.txt
 clean:
 	rm -rf ./$(SGFFILE_DIR)/$(SGFFILE) $(WHITEPLAYER) $(BLACKPLAYER)
-	rm -f Stephanie.o
+	rm -f Stephanie.o board.o MCTS.o
