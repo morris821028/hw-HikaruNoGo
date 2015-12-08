@@ -1,6 +1,8 @@
 #include "board.h"
-#include <vector>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <vector>
 #include <set>
 using namespace std;
 
@@ -24,7 +26,7 @@ struct Node {
 	}
 };
 
-#define MAXNODES 4096
+#define MAXNODES 32767
 class MCTS {
 public:
 	Node _mem[MAXNODES];
@@ -80,19 +82,18 @@ public:
 	}
 	int run(int time_limit) {
 		srand(time(NULL));
-		const int MAXSIM = 30;
-		clock_t start_t, end_t, now_t;
+		const int MAXSIM = 20;
+		clock_t start_t, end_t;
 	    // record start time
 	    start_t = clock();
 	    end_t = start_t + CLOCKS_PER_SEC * time_limit;
 	    int rounds = 0;
-		for (int it = 0; it < 100; it++) {
+		for (int it = 0; it < 10; it++) {
 			rounds++;
 			iGameRecord = oGameRecord;
 			Node *leaf = selection(iGameRecord);
-			int ways = expansion(leaf, iGameRecord);
-			for (int i = 0; i < leaf->son.size(); i++) {
-				Node *p = leaf->son[i];
+			expansion(leaf, iGameRecord);
+			for (Node* p : leaf->son) {
 				float sum = 0, sqsum = 0;
 
 				set<mBoard> tGameRecord = iGameRecord;
@@ -116,7 +117,7 @@ public:
 		decider.mount(root->turn);
 		int move = root->move[0];
 		Node *best = root->son[0], *tmp;
-		for (int i = 1; i < root->son.size(); i++) {
+		for (size_t i = 1; i < root->son.size(); i++) {
 			tmp = decider.pick(root->son[i], best);
 			if (tmp != best)
 				best = tmp, move = root->move[i];
@@ -130,7 +131,7 @@ public:
 				return p;
 			decider.mount(p->turn);
 			Node *q = p->son[0];
-			for (int i = 1; i < p->son.size(); i++)
+			for (size_t i = 1; i < p->son.size(); i++)
 				q = decider.pick(q, p->son[i]);
 			q->parent = p;
 			p = q;

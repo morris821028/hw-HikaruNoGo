@@ -10,6 +10,9 @@
 #include "simulator.h"
 
 using namespace std;
+
+static int _board_size = BOARDSIZE;
+static double _komi =  DEFAULTKOMI;
 static const char LabelX[]="0ABCDEFGHJ";
 FILE* fdebug;
 Simulator simulator;
@@ -221,9 +224,8 @@ int main(int argc, char* argv[]) {
     fdebug=fopen("go-debug.txt", "w");
     fprintf(fdebug, "begin");
     fflush(fdebug);
-//    int type = GTPVERSION;// 1: local version, 2: gtp version
-    int type = GTPVERSION;// 1: local version, 2: gtp version
-    int display = 0; // 1: display, 2 nodisplay
+    // int type = GTPVERSION;	// 1: local version, 2: gtp version
+    int display = 0; 		// 1: display, 2 nodisplay
     if (argc > 1) {
         if (strcmp(argv[1], "-display")==0) {
             display = 1;

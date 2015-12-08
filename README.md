@@ -36,3 +36,11 @@ $ ./Stephanie.exe -display
 
 * [電腦暗棋對局程式之設計與製作 - 范綱宇 陳志昌 中原大學](http://www.csie.ntnu.edu.tw/tcga2014/program-agenda/tcga2014_submission_4%EF%BC%BF%E7%B6%B1%E5%AE%87%20%E8%8C%83%20and%20%E5%BF%97%E6%98%8C%20%E9%99%B3.%20%E9%9B%BB%E8%85%A6%E6%9A%97%E6%A3%8B%E5%B0%8D%E5%B1%80%E7%A8%8B%E5%BC%8F%E4%B9%8B%E8%A8%AD%E8%A8%88%E8%88%87%E8%A3%BD%E4%BD%9C.pdf)
 * [一個蒙地卡羅之電腦圍棋程式之設計 - 陳俊嶧](https://ir.nctu.edu.tw/bitstream/11536/45925/1/558001.pdf)
+
+## C++ 編譯參數 ##
+
+* https://gcc.gnu.org/onlinedocs/gcc/Debugging-Options.html
+
+## GTP 協定參數 ##
+
+* http://gogui.sourceforge.net/doc/reference-twogtp.html

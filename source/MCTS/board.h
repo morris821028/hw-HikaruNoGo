@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <cstdlib>
 #include <ctime>
@@ -14,9 +15,6 @@
 #include <set>
 using namespace std;
 
-static int _board_size = BOARDSIZE;
-static int _board_boundary = BOUNDARYSIZE;
-static double _komi =  DEFAULTKOMI;
 static const int DirectionX[MAXDIRECTION] = {-1, 1, 0, 0};
 static const int DirectionY[MAXDIRECTION] = { 0, 0, 1,-1};
 
@@ -199,7 +197,7 @@ public:
 			}
 		} DisjointSet;
 		static int cases = 0, used[BOUNDARYSIZE][BOUNDARYSIZE] = {};
-		memset(comp_liberty, 0, sizeof(comp_liberty));
+		memset(comp_liberty, 0, sizeof(int)*BOUNDARYSIZE*BOUNDARYSIZE);
 		DisjointSet.init(BOUNDARYSIZE * BOUNDARYSIZE);
 		for (int i = 1; i <= BOARDSIZE; i++) {
 			for (int j = 1; j <= BOARDSIZE; j++) {
@@ -254,8 +252,8 @@ public:
 	    	num_neighborhood_boun = 0;
 	    int legal_moves = 0;
 	    int next_x, next_y;
-	    int Liberties[4];
-	    int NeighboorhoodState[4];
+	    int Liberties[4] = {};
+	    int NeighboorhoodState[4] = {};
 	    bool eat_move = 0;
 	    /* O(n^2 n^2) = O(10000) */
 	    compute_comp_liberty(comp_liberty);
