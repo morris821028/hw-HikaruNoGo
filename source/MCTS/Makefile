@@ -19,15 +19,16 @@ GOGUI_FLAGS = -size 9 -computer-both -auto
 CXX = g++
 CXX_FLAGS = -Wall -lm -std=c++11
 DEBUG_FLAGS = -g -pg
-OPT_FLAGS = -Ofast -march=native
+OPT_FLAGS = -O2 -march=native
 TEST_FLAGS = -DUCT -DTEST
 
 all:
 	$(CXX) ./test/randomgo.cpp -o $(WHITEPLAYER)
+	$(CXX) simulator.cpp -c $(OPT_FLAGS) $(CXX_FLAGS) $(TEST_FLAGS) $(DEBUG_FLAGS)
 	$(CXX) board.cpp -c $(OPT_FLAGS) $(CXX_FLAGS) $(TEST_FLAGS) $(DEBUG_FLAGS)
 	$(CXX) MCTS.cpp -c $(OPT_FLAGS) $(CXX_FLAGS) $(TEST_FLAGS) $(DEBUG_FLAGS)
 	$(CXX) Stephanie.cpp -c $(OPT_FLAGS) $(CXX_FLAGS) $(TEST_FLAGS) $(DEBUG_FLAGS)
-	$(CXX) Stephanie.o MCTS.o board.o -o $(BLACKPLAYER) $(OPT_FLAGS) $(CXX_FLAGS) $(TEST_FLAGS) $(DEBUG_FLAGS)
+	$(CXX) Stephanie.o MCTS.o board.o simulator.o -o $(BLACKPLAYER) $(OPT_FLAGS) $(CXX_FLAGS) $(TEST_FLAGS) $(DEBUG_FLAGS)
 play:
 	rm -rf ./$(SGFFILE_DIR)/$(SGFFILE)
 	mkdir ./$(SGFFILE_DIR)/$(SGFFILE)
@@ -38,4 +39,4 @@ prof:
 	gprof $(BLACKPLAYER) gmon.out >analysis.txt
 clean:
 	rm -rf ./$(SGFFILE_DIR)/$(SGFFILE) $(WHITEPLAYER) $(BLACKPLAYER)
-	rm -f Stephanie.o board.o MCTS.o
+	rm -f Stephanie.o board.o MCTS.o simulator.o

@@ -1,32 +1,17 @@
-#include "board.h"
+#ifndef _SIMULATOR_H
+#define _SIMULATOR_H
+
 #include "MCTS.h"
+#include "board.h"
 #include <cstdio>
 #include <cstdlib>
-
 
 class Simulator {
 public:
 	MCTS mcts;
-	int rand_pick_move(int num_legal_moves, int MoveList[HISTORYLENGTH]) {
-	    if (num_legal_moves == 0)
-			return 0;
-		int move_id = rand()%num_legal_moves;
-		return MoveList[move_id];
-	}
-	void do_move(mBoard &board, int turn, int move) {
-	    int move_x = (move % 100) / 10, move_y = move % 10;
-	    if (move < 100)
-			board.SETBOARD(move_x, move_y, turn);
-	    else
-			board.update_board(move_x, move_y, turn);
-	}
-	void record(mBoard board, mBoard GameRecord[MAXGAMELENGTH], int game_length) {
-		memcpy(&GameRecord[game_length], &board, sizeof(mBoard));
-	}
-	int genmove(mBoard &board, int turn, int time_limit, int game_length, mBoard GameRecord[MAXGAMELENGTH]) {
-		mcts.init(board, game_length, turn, GameRecord);
-		int return_move = mcts.run(time_limit);
-		do_move(board, turn, return_move);
-		return return_move % 100;
-	}
+	void record(mBoard board, mBoard GameRecord[MAXGAMELENGTH], int game_length);
+	int genmove(mBoard &board, int turn, int time_limit, 
+		int game_length, mBoard GameRecord[MAXGAMELENGTH]);
 };
+
+#endif

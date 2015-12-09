@@ -6,6 +6,13 @@ Node* MCTS::newNode(mBoard board) {
 	*p = Node(), p->board = board;
 	return p;
 }
+void MCTS::record(mBoard board, set<mBoard> &GameRecord) {
+	GameRecord.insert(board);
+}
+
+/**
+ *	control
+ */
 void MCTS::init(mBoard init_board, int game_length, int turn, mBoard GR[MAXGAMELENGTH]) {
 	cases = 0;
 	nodesize = 0;
@@ -13,22 +20,7 @@ void MCTS::init(mBoard init_board, int game_length, int turn, mBoard GR[MAXGAMEL
 	root->game_length = game_length, root->turn = turn;
 	for (int i = 0; i < game_length; i++)
 		oGameRecord.insert(GR[i]);
-}
-int MCTS::rand_pick_move(int num_legal_moves, int MoveList[HISTORYLENGTH]) {
-    if (num_legal_moves == 0)
-		return 0;
-	int move_id = rand()%num_legal_moves;
-	return MoveList[move_id];
-}
-void MCTS::record(mBoard board, set<mBoard> &GameRecord) {
-	GameRecord.insert(board);
-}
-void MCTS::do_move(mBoard &board, int turn, int move) {
-    int move_x = (move % 100) / 10, move_y = move % 10;
-    if (move < 100)
-		board.SETBOARD(move_x, move_y, turn);
-    else
-		board.update_board(move_x, move_y, turn);
+	iGameRecord.clear();
 }
 int MCTS::run(int time_limit) {
 	srand(time(NULL));
@@ -38,8 +30,7 @@ int MCTS::run(int time_limit) {
     start_t = clock();
     end_t = start_t + CLOCKS_PER_SEC * time_limit;
     int rounds = 0;
-	for (int it = 0; it < 10; it++) {
-		rounds++;
+	for (int it = 0; it < 1000; it++) {
 		iGameRecord = oGameRecord;
 		Node *leaf = selection(iGameRecord);
 		expansion(leaf, iGameRecord);
@@ -51,6 +42,10 @@ int MCTS::run(int time_limit) {
 				record(p->board, tGameRecord);
 				int score = simulation(p, tGameRecord);
 				sum += score, sqsum += score * score;
+				rounds++;
+				if (clock() > end_t) {
+					goto ROUNDEND;
+				}
 			}
 			p->sum = sum, p->sqsum = sqsum;
 			p->games = MAXSIM;
@@ -60,7 +55,8 @@ int MCTS::run(int time_limit) {
 		if (clock() > end_t)
 			break;
 	}
-	cerr << "rounds " << rounds << endl;
+	ROUNDEND:
+		cerr << "rounds " << rounds << endl;
 	if (root->son.size() == 0)
 		return 0;
 	
@@ -74,6 +70,10 @@ int MCTS::run(int time_limit) {
 	}
 	return move;
 }	
+
+/**
+ *	Monte Carlo Tree Search Step: selection, expansion, simulation, backpropagation
+ */
 Node* MCTS::selection(set<mBoard> &sGameRecord) {
 	Node *p = root;
 	while (true) {
@@ -91,19 +91,19 @@ Node* MCTS::selection(set<mBoard> &sGameRecord) {
 }
 int MCTS::expansion(Node *leaf, set<mBoard> &eGameRecord) {
 	static int MoveList[HISTORYLENGTH];
-	int num_legal_moves = leaf->board.gen_legal_move(leaf->turn, leaf->game_length, eGameRecord, MoveList);
+	int num_legal_moves = leaf->board.legalMoves(leaf->turn, leaf->game_length, eGameRecord, MoveList);
 	int ok = 0;
 	for (int i = 0; i < num_legal_moves; i++) {
 		if (leaf->game_length < 12) {
 			int move = MoveList[i];
 			int cx = BOUNDARYSIZE/2, cy = BOUNDARYSIZE/2;
 			int tx = (move%100) / 10, ty = move % 10, dist = max(abs(tx - cx), abs(ty - cy));
-			if (dist >= BOUNDARYSIZE/2 - 1 || dist <= 1)
+			if (dist >= BOUNDARYSIZE/2 - 1)
 				continue;
 		}
 		Node *t = newNode(leaf->board);
 		t->game_length = leaf->game_length+1, t->turn = leaf->turn == BLACK ? WHITE : BLACK;
-		do_move(t->board, leaf->turn, MoveList[i]);
+		mBoard::makeMove(t->board, leaf->turn, MoveList[i]);
 		leaf->son.push_back(t), leaf->move.push_back(MoveList[i]);
 		t->parent = leaf;
 		ok++;
@@ -116,26 +116,26 @@ int MCTS::simulation(Node *leaf, set<mBoard> &tGameRecord) {
     int num_legal_moves = 0, move;
     int game_length = leaf->game_length;
     int turn = leaf->turn;
-    num_legal_moves = tmpBoard.gen_legal_move(turn, game_length, tGameRecord, MoveList);
-    
-    int limit = game_length * game_length;
+    num_legal_moves = tmpBoard.legalMoves(turn, game_length, tGameRecord, MoveList);
+//    int limit = game_length * game_length;
+	int limit = INT_MAX;
     while (true && limit >= 0) {
     	if (num_legal_moves == 0) {
     		int score = tmpBoard.score();
     		return score;
 		}
-    	move = rand_pick_move(num_legal_moves, MoveList);
+    	move = mBoard::randMove(num_legal_moves, MoveList);
     	if (game_length < 12) {
 			int cx = BOUNDARYSIZE/2, cy = BOUNDARYSIZE/2;
 			int tx = (move%100) / 10, ty = move % 10, dist = max(abs(tx - cx), abs(ty - cy));
-			if (dist >= BOUNDARYSIZE/2 - 1 || dist <= 1)
+			if (dist >= BOUNDARYSIZE/2 - 1)
 				continue;
 		}
-		do_move(tmpBoard, turn, move);
+		mBoard::makeMove(tmpBoard, turn, move);
         record(tmpBoard, tGameRecord);
         game_length++;
         turn = turn == BLACK ? WHITE : BLACK;
-        num_legal_moves = tmpBoard.gen_legal_move(turn, game_length, tGameRecord, MoveList);
+        num_legal_moves = tmpBoard.legalMoves(turn, game_length, tGameRecord, MoveList);
         limit--;
     }
     

@@ -48,17 +48,51 @@ public:
 			ORBOARD(i, BOUNDARYSIZE-1, BOUNDARY);
 		}
 	}
-	void count_liberty(int X, int Y, int Liberties[MAXDIRECTION]);
-	void count_neighboorhood_state(int X, int Y, 
-		int turn, int* empt, int* self, int* oppo ,int* boun, 
-		int NeighboorhoodState[MAXDIRECTION]);
-	int remove_piece(int X, int Y, int turn);
-	void update_board(int X, int Y, int turn);
-	int legal_step(int X, int Y, int turn);
-	void compute_comp_liberty(int comp_liberty[BOUNDARYSIZE][BOUNDARYSIZE]);
-	void count_liberty_faster(int x, int y, int Liberties[], int comp_liberty[BOUNDARYSIZE][BOUNDARYSIZE]);
-	int gen_legal_move(int turn, int game_length, set<mBoard> &GameRecord, int MoveList[]);
+	
+	/**
+	 *	liberty computing
+	 */
+	void countLibertySingle(int X, int Y, int Liberties[MAXDIRECTION]);
+	void buildLibertyGraph(int comp_liberty[BOUNDARYSIZE][BOUNDARYSIZE]);
+	void fetchLibertyBy(int x, int y, int Liberties[], int comp_liberty[BOUNDARYSIZE][BOUNDARYSIZE]);
+	int searchLibertySingleBy(int x, int y, int label, mBoard &ConnectBoard);
+	int searchLibertySlow(int x, int y, int used[][BOUNDARYSIZE], int cases);
+	
+	/**
+	 *	simulate main
+	 */
+	void transferBoard(int X, int Y, int turn);
+	int removeComponent(int X, int Y, int turn);
+	void getAdjacencyState(int X, int Y, int turn, 
+		int* empt, int* self, int* oppo ,int* boun, int NeighboorhoodState[MAXDIRECTION]);
+	/**
+	 *	simulate helper
+	 */
+	static int randMove(int moveSize, int MoveList[HISTORYLENGTH]) {
+	    if (moveSize == 0)	return 0;
+		return MoveList[rand()%moveSize];
+	}
+	static void makeMove(mBoard &board, int turn, int move) {
+	    int move_x = (move % 100) / 10, move_y = move % 10;
+	    if (move < 100)
+			board.SETBOARD(move_x, move_y, turn);
+	    else
+			board.transferBoard(move_x, move_y, turn);
+	}
+	/**
+	 *	generator next state
+	 */
+	int isLegalMove(int X, int Y, int turn);
+	int legalMoves(int turn, int game_length, set<mBoard> &GameRecord, int MoveList[]);
+	
+	/**
+	 *	evaluation function
+	 */
 	int score();
+	
+	/**
+	 *	board configuration compare
+  	 */
 	bool operator==(const mBoard &board) const {
 		return memcmp(this->bitB, board.bitB, sizeof(board.bitB)) == 0;
 	}
@@ -69,10 +103,37 @@ public:
 		}
 		return false;
 	}
-private:
-	/* 0 <= label <= 3, O(n^n) = O(121) */
-	int count_liberty(int x, int y, int label, mBoard &ConnectBoard);
-	int count_liberty_slow(int x, int y, int used[][BOUNDARYSIZE], int cases);
+	
+	/**
+	 *	output helper
+	 */
+	void showLegalMove(int turn) {
+		int MoveList[HISTORYLENGTH];
+		set<mBoard> S;
+		int n = legalMoves(turn, 0, S, MoveList);
+		int tmp[BOUNDARYSIZE][BOUNDARYSIZE] = {};
+		for (int i = 0; i < n; i++) {
+			int move = MoveList[i];
+			tmp[move%100 / 10][move % 10] = 1;
+		}
+		for (int i = 0; i < BOUNDARYSIZE; ++i) {
+			cout << "#" << 10-i;
+			for (int j = 0; j < BOUNDARYSIZE; ++j) {
+				if (tmp[i][j] == 1) {
+					cout << " +";
+					continue;
+				}
+			    switch (GETBOARD(i, j)) {
+					case EMPTY: cout << " .";break;
+					case BLACK: cout << " X";break;
+					case WHITE: cout << " O";break;
+					case BOUNDARY: cout << " -";break;
+		    	}
+			}
+			cout << endl;
+	    }
+	    cout << endl << endl;
+	}	
 	void show() {
 	    for (int i = 0; i < BOUNDARYSIZE; ++i) {
 			cout << "#" << 10-i;

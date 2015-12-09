@@ -1,3 +1,6 @@
+#ifndef _MCTS_H
+#define _MCTS_H
+ 
 #include "board.h"
 
 #include <cstdio>
@@ -47,19 +50,27 @@ class MCTS {
 public:
 	Node _mem[MAXNODES];
 	Node *root;
-	int cases, nodesize = 0;
+	int cases, nodesize;
 	set<mBoard> oGameRecord;	// root
 	set<mBoard> iGameRecord;	// iterator middle
 	Picker decider;
 	
 	Node* newNode(mBoard board);
-	void init(mBoard init_board, int game_length, int turn, mBoard GR[MAXGAMELENGTH]);
-	int rand_pick_move(int num_legal_moves, int MoveList[HISTORYLENGTH]);
 	void record(mBoard board, set<mBoard> &GameRecord);
-	void do_move(mBoard &board, int turn, int move);
+	
+	/**
+	 *	control
+	 */
+	void init(mBoard init_board, int game_length, int turn, mBoard GR[MAXGAMELENGTH]);
 	int run(int time_limit);
+	
+	/**
+	 *	Monte Carlo Tree Search Step: selection, expansion, simulation, backpropagation
+	 */
 	Node* selection(set<mBoard> &sGameRecord);
 	int expansion(Node *leaf, set<mBoard> &eGameRecord);
 	int simulation(Node *leaf, set<mBoard> &tGameRecord);
 	void backpropagation(Node *leaf);
 };
+
+#endif 
