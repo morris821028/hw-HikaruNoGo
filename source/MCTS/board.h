@@ -108,6 +108,7 @@ public:
 	 *	output helper
 	 */
 	void showLegalMove(int turn) {
+		cout << turn << endl;
 		int MoveList[HISTORYLENGTH];
 		set<mBoard> S;
 		int n = legalMoves(turn, 0, S, MoveList);

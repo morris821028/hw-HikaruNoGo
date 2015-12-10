@@ -20,7 +20,7 @@ CXX = g++
 CXX_FLAGS = -Wall -lm -std=c++11
 DEBUG_FLAGS = -g -pg
 OPT_FLAGS = -O2 -march=native
-TEST_FLAGS = -DUCT -DTEST
+#TEST_FLAGS = -DDEBUG
 
 all:
 	$(CXX) ./test/randomgo.cpp -o $(WHITEPLAYER)

@@ -38,7 +38,7 @@ int MCTS::run(int time_limit) {
 			float sum = 0, sqsum = 0;
 
 			for (int j = 0; j < MAXSIM; j++) {
-			set<mBoard> tGameRecord = iGameRecord;
+				set<mBoard> tGameRecord = iGameRecord;
 				record(p->board, tGameRecord);
 				int score = simulation(p, tGameRecord);
 				sum += score, sqsum += score * score;
@@ -101,9 +101,10 @@ int MCTS::expansion(Node *leaf, set<mBoard> &eGameRecord) {
 			if (dist >= BOUNDARYSIZE/2 - 1)
 				continue;
 		}
-		Node *t = newNode(leaf->board);
+		mBoard tmpBoard = leaf->board;
+		mBoard::makeMove(tmpBoard, leaf->turn, MoveList[i]);
+		Node *t = newNode(tmpBoard);
 		t->game_length = leaf->game_length+1, t->turn = leaf->turn == BLACK ? WHITE : BLACK;
-		mBoard::makeMove(t->board, leaf->turn, MoveList[i]);
 		leaf->son.push_back(t), leaf->move.push_back(MoveList[i]);
 		t->parent = leaf;
 		ok++;

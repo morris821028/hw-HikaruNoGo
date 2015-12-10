@@ -71,7 +71,7 @@ void mBoard::buildLibertyGraph(int comp_liberty[BOUNDARYSIZE][BOUNDARYSIZE]) {
 			int x = i*BOUNDARYSIZE+j;
 			comp_liberty[i][j] = DisjointSet.libert[DisjointSet.findp(x)];
 		}
-	} 
+	}
 }
 
 /* 0 <= label <= 3, O(n^n) = O(121) */
@@ -250,7 +250,6 @@ int mBoard::legalMoves(int turn, int game_length, set<mBoard> &GameRecord, int M
     int Liberties[4] = {};
     int NeighboorhoodState[4] = {};
     bool eat_move = 0;
-    /* O(n^2 n^2) = O(10000) */
     buildLibertyGraph(comp_liberty);
     for (int x = 1 ; x <= BOARDSIZE; ++x) {
 		for (int y = 1 ; y <= BOARDSIZE; ++y) {
@@ -274,22 +273,22 @@ int mBoard::legalMoves(int turn, int game_length, set<mBoard> &GameRecord, int M
 			if (num_neighborhood_empt > 0) {
 			     next_x = x, next_y = y;
 			     // check if it is a capture move
-			     for (int d = 0 ; d < MAXDIRECTION; ++d) {
+			    for (int d = 0 ; d < MAXDIRECTION; ++d) {
 				 	if (NeighboorhoodState[d] == OPPONENT && Liberties[d] == 1)
 				    	eat_move = 1;
-			     }				     
+			    }
 			} else {
 				// Case 2: no empty intersection in the neighborhood
 			    // Case 2.1: Surround by the self piece
 			    if (num_neighborhood_self + num_neighborhood_boun == MAXDIRECTION) {
-					int check_eye_flag = num_neighborhood_boun;
+					int check_eye_flag = num_neighborhood_boun, extra_eye_flag = 0;
 			    	// Avoid fill self eye
 			    	// Check if there is one self component which has more than one liberty
 					for (int d = 0 ; d < MAXDIRECTION; ++d) {
 					    if (NeighboorhoodState[d] == SELF && Liberties[d] > 1)
-							check_eye_flag++;
+							check_eye_flag++, extra_eye_flag = 1;
 					}
-					if (check_eye_flag >= 1 && check_eye_flag < 4)
+					if (extra_eye_flag >= 1 && check_eye_flag < 4)
 				    	next_x = x, next_y = y;
 			    } else if (num_neighborhood_oppo > 0) {
 			    	// Case 2.2: Surround by opponent or both side's pieces.
