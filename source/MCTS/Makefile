@@ -18,7 +18,7 @@ GOGUI_FLAGS = -size 9 -computer-both -auto
 
 CXX = g++
 CXX_FLAGS = -Wall -lm -std=c++11 -fopenmp
-DEBUG_FLAGS = -g -pg -openmp-profile
+DEBUG_FLAGS = -g -pg #-openmp-profile
 OPT_FLAGS = -O2 -march=native
 #TEST_FLAGS = -DDEBUG
 
