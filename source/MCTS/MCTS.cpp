@@ -34,29 +34,36 @@ int MCTS::run(int time_limit) {
 		iGameRecord = oGameRecord;
 		Node *leaf = selection(iGameRecord);
 		expansion(leaf, iGameRecord);
-		for (Node* p : leaf->son) {
-			float sum = 0, sqsum = 0;
 
+		int chunk = 4;
+		#pragma omp parallel for schedule(dynamic, chunk)
+		for (size_t i = 0; i < leaf->son.size(); i++) {
+			if (clock() > end_t)
+				continue;
+			Node* p = leaf->son[i];
+			int games = 0;
+			float sum = 0, sqsum = 0;
 			for (int j = 0; j < MAXSIM; j++) {
 				set<mBoard> tGameRecord = iGameRecord;
 				record(p->board, tGameRecord);
 				int score = simulation(p, tGameRecord);
-				sum += score, sqsum += score * score;
+				sum += score, sqsum += score * score, games++;
 				rounds++;
-				if (clock() > end_t) {
-					goto ROUNDEND;
-				}
 			}
+
 			p->sum = sum, p->sqsum = sqsum;
-			p->games = MAXSIM;
+			p->games = games;
 			p->updatescore();
-			backpropagation(p);
+			#pragma omp critical
+			{
+				rounds += games;
+				backpropagation(leaf, games, sum, sqsum);
+			}
 		}
 		if (clock() > end_t)
 			break;
 	}
-	ROUNDEND:
-		cerr << "rounds " << rounds << endl;
+	cerr << "rounds " << rounds << endl;
 	if (root->son.size() == 0)
 		return 0;
 	
@@ -90,7 +97,7 @@ Node* MCTS::selection(set<mBoard> &sGameRecord) {
 	return NULL;
 }
 int MCTS::expansion(Node *leaf, set<mBoard> &eGameRecord) {
-	static int MoveList[HISTORYLENGTH];
+	int MoveList[HISTORYLENGTH];
 	int num_legal_moves = leaf->board.legalMoves(leaf->turn, leaf->game_length, eGameRecord, MoveList);
 	int ok = 0;
 	for (int i = 0; i < num_legal_moves; i++) {
@@ -118,7 +125,7 @@ int MCTS::simulation(Node *leaf, set<mBoard> &tGameRecord) {
     int game_length = leaf->game_length;
     int turn = leaf->turn;
     num_legal_moves = tmpBoard.legalMoves(turn, game_length, tGameRecord, MoveList);
-//    int limit = game_length * game_length;
+	// int limit = game_length * game_length;
 	int limit = INT_MAX;
     while (true && limit >= 0) {
     	if (num_legal_moves == 0) {
@@ -143,10 +150,7 @@ int MCTS::simulation(Node *leaf, set<mBoard> &tGameRecord) {
     int score = tmpBoard.score();
     return score;
 }
-void MCTS::backpropagation(Node *leaf) {
-	Node *p = leaf->parent;
-	int games = leaf->games;
-	float sum = leaf->sum, sqsum = leaf->sqsum;
+void MCTS::backpropagation(Node *p, int games, float sum, float sqsum) {
 	while (p != NULL) {
 		p->sum += sum, p->sqsum += sqsum;
 		p->games += games;

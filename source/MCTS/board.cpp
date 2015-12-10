@@ -20,7 +20,7 @@ void mBoard::countLibertySingle(int X, int Y, int Liberties[MAXDIRECTION]) {
     }
 }
 void mBoard::buildLibertyGraph(int comp_liberty[BOUNDARYSIZE][BOUNDARYSIZE]) {
-	static struct Disjoint_Set {
+	struct Disjoint_Set {
 		int parent[BOUNDARYSIZE * BOUNDARYSIZE];
 		int libert[BOUNDARYSIZE * BOUNDARYSIZE];
 		void init(int n) {
@@ -36,7 +36,7 @@ void mBoard::buildLibertyGraph(int comp_liberty[BOUNDARYSIZE][BOUNDARYSIZE]) {
 			parent[x] = y;
 		}
 	} DisjointSet;
-	static int cases = 0, used[BOUNDARYSIZE][BOUNDARYSIZE] = {};
+	int cases = 0, used[BOUNDARYSIZE][BOUNDARYSIZE] = {};
 	memset(comp_liberty, 0, sizeof(int)*BOUNDARYSIZE*BOUNDARYSIZE);
 	DisjointSet.init(BOUNDARYSIZE * BOUNDARYSIZE);
 	for (int i = 1; i <= BOARDSIZE; i++) {

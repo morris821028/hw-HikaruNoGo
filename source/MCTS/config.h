@@ -4,7 +4,7 @@
 #define BOARDSIZE        9
 #define BOUNDARYSIZE    11
 #define COMMANDLENGTH 1000
-#define DEFAULTTIME      1
+#define DEFAULTTIME      5
 #define DEFAULTKOMI      7
 
 #define MAXGAMELENGTH 1000

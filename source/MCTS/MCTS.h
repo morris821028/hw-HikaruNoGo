@@ -71,7 +71,7 @@ public:
 	Node* selection(set<mBoard> &sGameRecord);
 	int expansion(Node *leaf, set<mBoard> &eGameRecord);
 	int simulation(Node *leaf, set<mBoard> &tGameRecord);
-	void backpropagation(Node *leaf);
+	void backpropagation(Node *leaf, int games, float sum, float sqsum);
 };
 
 #endif 
