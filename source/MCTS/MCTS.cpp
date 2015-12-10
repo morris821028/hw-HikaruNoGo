@@ -37,8 +37,8 @@ int MCTS::run(int time_limit) {
 		for (Node* p : leaf->son) {
 			float sum = 0, sqsum = 0;
 
-			set<mBoard> tGameRecord = iGameRecord;
 			for (int j = 0; j < MAXSIM; j++) {
+			set<mBoard> tGameRecord = iGameRecord;
 				record(p->board, tGameRecord);
 				int score = simulation(p, tGameRecord);
 				sum += score, sqsum += score * score;
