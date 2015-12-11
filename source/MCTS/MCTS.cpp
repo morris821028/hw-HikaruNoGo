@@ -24,7 +24,7 @@ void MCTS::init(mBoard init_board, int game_length, int turn, mBoard GR[MAXGAMEL
 }
 int MCTS::run(int time_limit) {
 	srand(time(NULL));
-	const int MAXSIM = 20;
+	const int MAXSIM = 30;
 	clock_t start_t, end_t;
 	// record start time
 	start_t = clock();
@@ -41,23 +41,30 @@ int MCTS::run(int time_limit) {
 			if (clock() > end_t)
 				continue;
 			Node* p = leaf->son[i];
-			int games = 0;
+			int games = 0, posscr = 0, negscr = 0;
 			float sum = 0, sqsum = 0;
 			for (int j = 0; j < MAXSIM; j++) {
 				set<mBoard> tGameRecord = iGameRecord;
 				record(p->board, tGameRecord);
 				int score = simulation(p, tGameRecord);
 				sum += score, sqsum += score * score, games++;
+				if (score > 0)
+					posscr++;
+				else
+					negscr++;
 				rounds++;
 			}
 
 			p->sum = sum, p->sqsum = sqsum;
 			p->games = games;
-			p->updatescore();
+			if (p->turn == BLACK)
+				p->wins += posscr;
+			else
+				p->wins += negscr;
 #pragma omp critical
 			{
 				rounds += games;
-				backpropagation(leaf, games, sum, sqsum);
+				backpropagation(leaf, games, sum, sqsum, posscr, negscr);
 			}
 		}
 		if (clock() > end_t)
@@ -67,11 +74,14 @@ int MCTS::run(int time_limit) {
 	if (root->son.size() == 0)
 		return 0;
 
-	decider.mount(root->turn);
+	decider.mount(root->turn, root->games);
 	int move = root->move[0];
 	Node *best = root->son[0], *tmp;
+	// root->board.showLegalMove(root->turn);
+	// for (size_t i = 0; i < root->son.size(); i++)
+	// 	cerr << root->son[i]->UCB(root->games) << endl;
 	for (size_t i = 1; i < root->son.size(); i++) {
-		tmp = decider.pick(root->son[i], best);
+		tmp = decider.want(root->son[i], best);
 		if (tmp != best)
 			best = tmp, move = root->move[i];
 	}
@@ -83,16 +93,18 @@ int MCTS::run(int time_limit) {
  */
 Node* MCTS::selection(set<mBoard> &sGameRecord) {
 	Node *p = root;
+	int select = 1;
 	while (true) {
 		if (p->son.size() == 0)	
 			return p;
-		decider.mount(p->turn);
+		decider.mount(p->turn, p->games);
 		Node *q = p->son[0];
 		for (size_t i = 1; i < p->son.size(); i++)
-			q = decider.pick(q, p->son[i]);
+			q = decider.want(q, p->son[i]);
 		q->parent = p;
 		p = q;
 		record(p->board, sGameRecord);
+		select = 1 - select;
 	}
 	return NULL;
 }
@@ -119,42 +131,36 @@ int MCTS::expansion(Node *leaf, set<mBoard> &eGameRecord) {
 	return ok;
 }
 int MCTS::simulation(Node *leaf, set<mBoard> &tGameRecord) {
-	int MoveList[HISTORYLENGTH];
 	mBoard tmpBoard = leaf->board;
-	int num_legal_moves = 0, move;
 	int game_length = leaf->game_length;
-	int turn = leaf->turn;
-	num_legal_moves = tmpBoard.legalMoves(turn, game_length, tGameRecord, MoveList);
+	int turn = leaf->turn, move;
+	move = tmpBoard.legalMovesR(turn, game_length, tGameRecord, game_length < 12);
 	// int limit = game_length * game_length;
 	int limit = INT_MAX;
 	while (true && limit >= 0) {
-		if (num_legal_moves == 0) {
+		if (move == 0) {
 			int score = tmpBoard.score();
 			return score;
-		}
-		move = mBoard::randMove(num_legal_moves, MoveList);
-		if (game_length < 12) {
-			int cx = BOUNDARYSIZE/2, cy = BOUNDARYSIZE/2;
-			int tx = (move%100) / 10, ty = move % 10, dist = max(abs(tx - cx), abs(ty - cy));
-			if (dist >= BOUNDARYSIZE/2 - 1)
-				continue;
 		}
 		mBoard::makeMove(tmpBoard, turn, move);
 		record(tmpBoard, tGameRecord);
 		game_length++;
 		turn = turn == BLACK ? WHITE : BLACK;
-		num_legal_moves = tmpBoard.legalMoves(turn, game_length, tGameRecord, MoveList);
+		move = tmpBoard.legalMovesR(turn, game_length, tGameRecord, game_length < 12);
 		limit--;
 	}
 
 	int score = tmpBoard.score();
 	return score;
 }
-void MCTS::backpropagation(Node *p, int games, float sum, float sqsum) {
+void MCTS::backpropagation(Node *p, int games, float sum, float sqsum, int posscr, int negscr) {
 	while (p != NULL) {
 		p->sum += sum, p->sqsum += sqsum;
 		p->games += games;
-		p->updatescore();
+		if (p->turn == BLACK)
+			p->wins += posscr;
+		else
+			p->wins += negscr;
 		p = p->parent;
 	}
 }

@@ -35,6 +35,8 @@ play:
 	gogui-twogtp $(TWOGTP_FLAGS) -white $(WHITEPLAYER) -black $(BLACKPLAYER)
 guiplay:
 	gogui -program "gogui-twogtp -white $(WHITEPLAYER) -black $(BLACKPLAYER) -size 9" -computer-both
+guiplay2:
+	gogui -program "gogui-twogtp -black $(WHITEPLAYER) -white $(BLACKPLAYER) -size 9" -computer-both
 khhsiao:
 	gogui -program "gogui-twogtp -black $(BLACKPLAYER) -white mcts_go99_r03922081.exe -size 9" -computer-both
 prof:

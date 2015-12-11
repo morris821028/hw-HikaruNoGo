@@ -13,6 +13,7 @@
 #include <limits.h>
 #include <assert.h>
 #include <set>
+#include <algorithm>
 using namespace std;
 
 #define BITSIZE ((BOUNDARYSIZE*BOUNDARYSIZE*4)/32 + 1)
@@ -84,6 +85,7 @@ class mBoard {
 	 */
 	int isLegalMove(int X, int Y, int turn);
 	int legalMoves(int turn, int game_length, set<mBoard> &GameRecord, int MoveList[]);
+	int legalMovesR(int turn, int game_length, set<mBoard> &GameRecord, int filter);
 
 	/**
 	 *	evaluation function
@@ -108,7 +110,7 @@ class mBoard {
 	 *	output helper
 	 */
 	void showLegalMove(int turn) {
-		cout << turn << endl;
+		cerr << turn << endl;
 		int MoveList[HISTORYLENGTH];
 		set<mBoard> S;
 		int n = legalMoves(turn, 0, S, MoveList);
@@ -118,22 +120,22 @@ class mBoard {
 			tmp[move%100 / 10][move % 10] = 1;
 		}
 		for (int i = 0; i < BOUNDARYSIZE; ++i) {
-			cout << "#" << 10-i;
+			cerr << "#" << 10-i;
 			for (int j = 0; j < BOUNDARYSIZE; ++j) {
 				if (tmp[i][j] == 1) {
-					cout << " +";
+					cerr << " +";
 					continue;
 				}
 				switch (GETBOARD(i, j)) {
-					case EMPTY: cout << " .";break;
-					case BLACK: cout << " X";break;
-					case WHITE: cout << " O";break;
-					case BOUNDARY: cout << " -";break;
+					case EMPTY: cerr << " .";break;
+					case BLACK: cerr << " X";break;
+					case WHITE: cerr << " O";break;
+					case BOUNDARY: cerr << " -";break;
 				}
 			}
-			cout << endl;
+			cerr << endl;
 		}
-		cout << endl << endl;
+		cerr << endl << endl;
 	}	
 	void show() {
 		for (int i = 0; i < BOUNDARYSIZE; ++i) {

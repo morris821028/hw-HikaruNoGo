@@ -336,6 +336,113 @@ int mBoard::legalMoves(int turn, int game_length, set<mBoard> &GameRecord, int M
 	}
 	return legal_moves;
 }
+int mBoard::legalMovesR(int turn, int game_length, set<mBoard> &GameRecord, int filter) {
+	mBoard NextBoard;
+	int num_neighborhood_self = 0,
+		num_neighborhood_oppo = 0,
+		num_neighborhood_empt = 0,
+		num_neighborhood_boun = 0;
+	int next_x, next_y;
+	int Liberties[4] = {};
+	int NeighboorhoodState[4] = {};
+	bool eat_move = 0;
+	pair<int, int> EMXY[BOARDSIZE*BOARDSIZE];
+	int EMSZ = 0;
+	for (int x = 1 ; x <= BOARDSIZE; ++x) {
+		for (int y = 1 ; y <= BOARDSIZE; ++y) {
+			if (GETBOARD(x, y) != EMPTY)
+				continue;
+			if (filter == 1) {
+				int cx = BOUNDARYSIZE/2, cy = BOUNDARYSIZE/2;
+				int dist = max(abs(x - cx), abs(y - cy));
+				if (dist >= BOUNDARYSIZE/2 - 1)
+					continue;
+			}
+			EMXY[EMSZ] = {x, y}, EMSZ++;
+		}
+	}
+	random_shuffle(EMXY, EMXY + EMSZ);
+	for (int it = 0, x, y; it < EMSZ; it++) {
+		x = EMXY[it].first, y = EMXY[it].second;
+		// check if current
+		// check the liberty of the neighborhood intersections
+		num_neighborhood_self = num_neighborhood_oppo = 0;
+		num_neighborhood_empt = num_neighborhood_boun = 0;
+		// count the number of empy, self, opponent, and boundary neighboorhood
+		getAdjacencyState(x, y, turn,
+				&num_neighborhood_empt,
+				&num_neighborhood_self,
+				&num_neighborhood_oppo,
+				&num_neighborhood_boun, NeighboorhoodState);
+		// check if the emtpy intersection is a legal move
+		next_x = next_y = 0;
+		eat_move = 0;
+		countLibertySingle(x, y, Liberties);
+		// Case 1: exist empty intersection in the neighborhood
+		if (num_neighborhood_empt > 0) {
+			next_x = x, next_y = y;
+			// check if it is a capture move
+			for (int d = 0 ; d < MAXDIRECTION; ++d) {
+				if (NeighboorhoodState[d] == OPPONENT && Liberties[d] == 1)
+					eat_move = 1;
+			}
+		} else {
+			// Case 2: no empty intersection in the neighborhood
+			// Case 2.1: Surround by the self piece
+			if (num_neighborhood_self + num_neighborhood_boun == MAXDIRECTION) {
+				int check_eye_flag = num_neighborhood_boun, extra_eye_flag = 0;
+				// Avoid fill self eye
+				// Check if there is one self component which has more than one liberty
+				for (int d = 0 ; d < MAXDIRECTION; ++d) {
+					if (NeighboorhoodState[d] == SELF && Liberties[d] > 1)
+						check_eye_flag++, extra_eye_flag = 1;
+				}
+				if (extra_eye_flag >= 1 && check_eye_flag < 4)
+					next_x = x, next_y = y;
+			} else if (num_neighborhood_oppo > 0) {
+				// Case 2.2: Surround by opponent or both side's pieces.
+				int check_flag = 0;
+				int eat_flag = 0;
+				for (int d = 0 ; d < MAXDIRECTION; ++d) {
+					// Check if there is one self component which has more than one liberty
+					if (NeighboorhoodState[d] == SELF && Liberties[d] > 1)
+						check_flag = 1;
+					// Check if there is one opponent's component which has exact one liberty
+					if (NeighboorhoodState[d] == OPPONENT && Liberties[d] == 1)
+						eat_flag = 1;
+				}
+				if (check_flag == 1) {
+					next_x = x, next_y = y;
+					if (eat_flag == 1)
+						eat_move = 1;
+				} else { // check_flag == 0
+					if (eat_flag == 1) {
+						next_x = x, next_y = y;
+						eat_move = 1;
+					}
+				}
+			}
+		}
+
+		if (next_x != 0 && next_y != 0) {
+			// copy the current board to next board
+			NextBoard = *this;
+			// do the move
+			// The move is a capture move and the board needs to be updated.
+			if (eat_move == 1)
+				NextBoard.transferBoard(next_x, next_y, turn);
+			else
+				NextBoard.SETBOARD(x, y, turn);
+			// Check the history to avoid the repeat board
+			bool repeat_move = GameRecord.count(NextBoard) != 0;
+			if (repeat_move == 0) {
+				// 3 digit zxy, z means eat or not, and put at (x, y)
+				return eat_move * 100 + next_x * 10 + next_y;
+			}
+		}
+	}
+	return 0;
+}
 
 /*
  * This function counts the number of points remains in the board by Black's view
