@@ -39,6 +39,10 @@ guiplay2:
 	gogui -program "gogui-twogtp -black $(WHITEPLAYER) -white $(BLACKPLAYER) -size 9" -computer-both
 khhsiao:
 	gogui -program "gogui-twogtp -black $(BLACKPLAYER) -white mcts_go99_r03922081.exe -size 9" -computer-both
+ylc:
+	gogui -program "gogui-twogtp -black $(BLACKPLAYER) -white uct.out -size 9" -computer-both
+ylc2khh:
+	gogui -program "gogui-twogtp -black uct.out -white mcts_go99_r03922081.exe -size 9" -computer-both
 prof:
 	gprof $(BLACKPLAYER) gmon.out >analysis.txt
 clean:

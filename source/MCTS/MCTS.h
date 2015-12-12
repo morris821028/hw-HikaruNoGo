@@ -12,6 +12,8 @@
 #include <set>
 using namespace std;
 
+const float MCTSUCBC1 = 1.5f;
+const float MCTSUCBC2 = 0.1f;
 struct Node {
 	// record data
 	int games, wins;
@@ -27,8 +29,11 @@ struct Node {
 		parent = NULL;
 	}
 	float UCB(int N) {
-		float ucb = wins * 1.f / games + 0.1 * sqrtf(log(N) / games + sqrtf(sqsum - 1.f * sum * sum / games));
-		return sum / games * 0.8f + (turn == BLACK ? ucb : -ucb) * 0.2f;
+		float ucb = wins * 1.f / games + MCTSUCBC1 * sqrtf(log(N) / games + sqrtf(sqsum - 1.f * sum * sum / games));
+		return sum / games * MCTSUCBC2 + (turn == BLACK ? ucb : -ucb) * (1.f - MCTSUCBC2);
+	}
+	float score() {
+		return sum / games;
 	}
 };
 struct Picker {
@@ -50,7 +55,7 @@ struct Picker {
 	}
 };
 
-#define MAXNODES 32767
+#define MAXNODES 131072
 class MCTS {
 public:
 	Node _mem[MAXNODES];

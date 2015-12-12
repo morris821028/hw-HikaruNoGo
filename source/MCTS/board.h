@@ -120,7 +120,7 @@ class mBoard {
 			tmp[move%100 / 10][move % 10] = 1;
 		}
 		for (int i = 0; i < BOUNDARYSIZE; ++i) {
-			cerr << "#" << 10-i;
+			cerr << "#" << (10-i)%10;
 			for (int j = 0; j < BOUNDARYSIZE; ++j) {
 				if (tmp[i][j] == 1) {
 					cerr << " +";

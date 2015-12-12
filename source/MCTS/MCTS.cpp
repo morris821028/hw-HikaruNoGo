@@ -21,16 +21,17 @@ void MCTS::init(mBoard init_board, int game_length, int turn, mBoard GR[MAXGAMEL
 	for (int i = 0; i < game_length; i++)
 		oGameRecord.insert(GR[i]);
 	iGameRecord.clear();
+	// init_board.showLegalMove(turn);
 }
 int MCTS::run(int time_limit) {
 	srand(time(NULL));
-	const int MAXSIM = 30;
+	const int MAXSIM = 50;
 	clock_t start_t, end_t;
 	// record start time
 	start_t = clock();
 	end_t = start_t + CLOCKS_PER_SEC * time_limit;
 	int rounds = 0;
-	for (int it = 0; it < 1000; it++) {
+	for (int it = 0; it < 10000; it++) {
 		iGameRecord = oGameRecord;
 		Node *leaf = selection(iGameRecord);
 		expansion(leaf, iGameRecord);
@@ -55,8 +56,8 @@ int MCTS::run(int time_limit) {
 				rounds++;
 			}
 
-			p->sum = sum, p->sqsum = sqsum;
-			p->games = games;
+			p->sum += sum, p->sqsum += sqsum;
+			p->games += games;
 			if (p->turn == BLACK)
 				p->wins += posscr;
 			else
@@ -70,7 +71,8 @@ int MCTS::run(int time_limit) {
 		if (clock() > end_t)
 			break;
 	}
-	cerr << "rounds " << rounds << endl;
+	cerr << "simulate rounds " << rounds << endl;
+	cerr << "usage #node " << nodesize << endl;
 	if (root->son.size() == 0)
 		return 0;
 
@@ -81,7 +83,18 @@ int MCTS::run(int time_limit) {
 	// for (size_t i = 0; i < root->son.size(); i++)
 	// 	cerr << root->son[i]->UCB(root->games) << endl;
 	for (size_t i = 1; i < root->son.size(); i++) {
-		tmp = decider.want(root->son[i], best);
+		if (root->turn == BLACK) {
+			if (root->son[i]->score() > best->score())
+				tmp = root->son[i];
+			else
+				tmp = best;
+		} else {
+			if (root->son[i]->score() < best->score())
+				tmp = root->son[i];
+			else
+				tmp = best;
+		}
+		// tmp = decider.want(root->son[i], best);
 		if (tmp != best)
 			best = tmp, move = root->move[i];
 	}
@@ -97,6 +110,8 @@ Node* MCTS::selection(set<mBoard> &sGameRecord) {
 	while (true) {
 		if (p->son.size() == 0)	
 			return p;
+		if (p->games < 30000)
+			return p;
 		decider.mount(p->turn, p->games);
 		Node *q = p->son[0];
 		for (size_t i = 1; i < p->son.size(); i++)
@@ -109,6 +124,8 @@ Node* MCTS::selection(set<mBoard> &sGameRecord) {
 	return NULL;
 }
 int MCTS::expansion(Node *leaf, set<mBoard> &eGameRecord) {
+	if (leaf->son.size())
+		return 0;
 	int MoveList[HISTORYLENGTH];
 	int num_legal_moves = leaf->board.legalMoves(leaf->turn, leaf->game_length, eGameRecord, MoveList);
 	int ok = 0;
